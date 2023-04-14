@@ -137,6 +137,7 @@ if __name__ == "__main__":
     with open(filename, 'r') as f:
         data = f.read()
     j = json.loads(data)
-    #generateMsgCountChart(j)
-    generateActiveUsrChart(j, contains='based')
+    generateMsgCountChart(j, usr=464709691952463873)
+    #generateActiveUsrChart(j, ignoreChannel=('ogólny', 'wszystkie-screeny', 'porno', 'testowanko', 'lista-życzeń-do-piwnicy', 'cytaty', 'wojna'), maxDate=datetime(2022, 6, 1))
     #generateWordChart(j, ('testowanko'))
+    plt.show()
