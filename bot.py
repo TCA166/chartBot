@@ -18,7 +18,7 @@ async def handleChannel(channel:nextcord.channel) -> list:
     try:
         async for message in channel.history(limit=None):
             print(i, end="\r")
-            result.append((message.author.id, message.content, str(message.created_at), [(r.count, r.emoji.name if r.emoji is nextcord.Emoji else str(r.emoji)) for r in message.reactions]))
+            result.append((message.author.id, message.content, str(message.created_at), [(r.count, str(r.emoji)) for r in message.reactions]))
             i += 1
     except:
         print("Can't access channel")
