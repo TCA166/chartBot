@@ -4,6 +4,8 @@ import json
 import numpy as np
 from datetime import datetime, timedelta
 import re
+import unicodedata
+from emoji import EMOJI_DATA
 
 def handleMention(text:str, members:dict) -> str:
     for mbr in members:
@@ -132,12 +134,90 @@ def generateWordChart(data:dict, ignoreChannel:tuple=(), ignoreUTF:bool=True, ig
     fig.tight_layout()
     return ax
 
+def generateReactionChart(data:dict, ignoreChannel:tuple=(), cutoff:int=100) -> plt.axes:
+    fig, ax = plt.subplots(figsize=(10, 6))
+    timeMaxs = []
+    timeMins = []
+
+    data['chnl'] = dict(sorted(data['chnl'].items(), key=lambda k: len([k[1]])))
+
+    counts = {}
+
+    labels = []
+
+    for key, channel in data['chnl'].items():
+        if len(channel) > 2 and key not in ignoreChannel:
+            time = [datetime.strptime(t[2][0:7], "%Y-%m") for t in channel]
+            #print(time)
+            timeMaxs.append(max(time))
+            timeMins.append(min(time))
+            for msg in channel:
+                if msg[2][0:7] not in counts.keys():
+                    counts[msg[2][0:7]] = {}
+                for reaction in msg[3]:
+                    if reaction[1] in EMOJI_DATA.keys():
+                        reaction[1] = unicodedata.normalize('NFC', reaction[1])
+                        newStr = ''
+                        for ch in reaction[1]:
+                            try:
+                                newStr += ' '.join(unicodedata.name(ch).split(' ')[-2:])
+                            except ValueError:
+                                newStr += str(ch.encode('utf-8'))
+                            newStr += " "
+                        reaction[1] = newStr
+                    if reaction[1] not in counts[msg[2][0:7]].keys():
+                        counts[msg[2][0:7]][reaction[1]] = reaction[0]
+                    else:
+                        counts[msg[2][0:7]][reaction[1]] += reaction[0]
+                    if reaction[1] not in labels:
+                        labels.append(reaction[1])
+    
+    width = 0.4
+
+    newCounts = {}
+    for label in labels:
+        if label not in newCounts.keys():
+            newCounts[label] = []
+        for key, val in counts.items():
+            if label in val.keys():
+                newCounts[label].append(val[label])
+            else:
+                newCounts[label].append(0)
+
+    if cutoff > 0:
+        filteredCounts = {}
+        for key, value in newCounts.items():
+            if sum(value) > cutoff or ':' in key:
+                filteredCounts[key] = value
+        newCounts = filteredCounts
+
+    bottom = np.zeros(len(counts.keys()))
+    for emoji, count in newCounts.items():
+        ax.bar(counts.keys(), count, width, label=emoji, bottom=bottom)
+        bottom += count
+        
+    ax.set_title("Reactions to messages through time", pad=30)
+    if len(ignoreChannel) > 0:
+        ax.text(0.13, 0.91, 'Ignored:%s' % str(ignoreChannel), transform=plt.gcf().transFigure)
+    if cutoff > 0:
+        ax.text(0.13, 0.89, 'Cutoff:%d occurences' % cutoff, transform=plt.gcf().transFigure)
+    ax.legend(fontsize=str(9), bbox_to_anchor=(0.8, 1.15))
+    fig.subplots_adjust(
+        top=0.88,
+        bottom=0.12,
+        left=0.125,
+        right=0.8
+    )
+    plt.setp(ax.get_xticklabels(), rotation=90, horizontalalignment='center')  
+    return ax
+
 if __name__ == "__main__":
     filename = input("Input json filename:")
     with open(filename, 'r') as f:
         data = f.read()
     j = json.loads(data)
-    generateMsgCountChart(j, usr=464709691952463873)
+    #generateMsgCountChart(j, usr=464709691952463873)
     #generateActiveUsrChart(j, ignoreChannel=('ogólny', 'wszystkie-screeny', 'porno', 'testowanko', 'lista-życzeń-do-piwnicy', 'cytaty', 'wojna'), maxDate=datetime(2022, 6, 1))
     #generateWordChart(j, ('testowanko'))
+    generateReactionChart(j)
     plt.show()

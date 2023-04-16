@@ -14,15 +14,14 @@ bot = commands.Bot(command_prefix='$', description=description, intents=intents)
 
 async def handleChannel(channel:nextcord.channel) -> list:
     result = []
-    print(channel.name)
+    #print(channel.name)
     i = 1
-    try:
+    if hasattr(channel, 'history'):
         async for message in channel.history(limit=None):
-            print(i, end="\r")
-            result.append((message.author.id, message.content, str(message.created_at), [(r.count, str(r.emoji)) for r in message.reactions]))
+            #print(i, end="\r")
+            result.append((message.author.id, message.content, str(message.created_at), [(r.count, r.emoji if isinstance(r.emoji, str) else ':%s:' % r.emoji.name ) for r in message.reactions]))
             i += 1
-    except:
-        print("Can't access channel")
+
     return result
     
 
@@ -104,7 +103,7 @@ async def active_usr_chart(interaction:nextcord.Interaction, ignore_channel:str=
     file = nextcord.File(fp=buf, filename='plot.png')
     await interaction.send(file=file)
 
-@bot.slash_command(description='Creates a bar chart of word counts.')
+@bot.slash_command(description='Creates a bar chart of word occurences through time.')
 async def word_chart(interaction:nextcord.Interaction, ignore_channel:str='', ignore_urls:bool=True, cutoff:int=20, min_len:int=3, contains:str=''):
     if len(ignore_channel) == 0:
         ignore_channel = ()
@@ -118,6 +117,26 @@ async def word_chart(interaction:nextcord.Interaction, ignore_channel:str='', ig
         interaction.send("Server hasn't been initialised. Cannot perform command.")
         return
     ax = chartGen.generateWordChart(j, ignore_channel, True, ignore_urls, cutoff, min_len, contains)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    file = nextcord.File(fp=buf, filename='plot.png')
+    await interaction.send(file=file)
+
+@bot.slash_command(description='Creates a bar chart of reactions through time.')
+async def reaction_chart(interaction:nextcord.Interaction, ignore_channel:str='', cutoff:int=100):
+    if len(ignore_channel) == 0:
+        ignore_channel = ()
+    else:
+        ignore_channel = ignore_channel.split(',')
+    server = interaction.guild
+    try:
+        with open('%s.json' % server.name, 'r+') as f:
+            j = json.loads(f.read())
+    except:
+        interaction.send("Server hasn't been initialised. Cannot perform command.")
+        return
+    ax = chartGen.generateReactionChart(j, ignore_channel, cutoff)
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
