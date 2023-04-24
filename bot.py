@@ -4,12 +4,13 @@ import json
 import chartGen
 import matplotlib.pyplot as plt
 import io
-from datetime import datetime, timedelta
+from datetime import datetime
 
 #discord bot setup
-description = ''' '''
+description = '''Bot for generating charts based on discord servers. https://github.com/TCA166/chartBot'''
 intents = nextcord.Intents.default()
-intents.members = True
+intents.typing = False
+intents.presences = False
 bot = commands.Bot(command_prefix='$', description=description, intents=intents)
 
 async def handleChannel(channel:nextcord.channel) -> list:
@@ -54,7 +55,7 @@ async def initialise(interaction:nextcord.Interaction):
         if not hasattr(channel, 'text_channels'): 
             jsonR['chnl'][channel.name] = await handleChannel(channel)
 
-    with open('%s.json' % server.name, 'w+') as f:
+    with open('%s.json' % server.id, 'w+') as f:
         f.write(json.dumps(jsonR))
     await interaction.send(file=nextcord.File('%s.json' % server.name))
     print('Done')
