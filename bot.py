@@ -57,7 +57,7 @@ async def initialise(interaction:nextcord.Interaction):
 
     with open('%s.json' % server.id, 'w+') as f:
         f.write(json.dumps(jsonR))
-    await interaction.send(file=nextcord.File('%s.json' % server.name))
+    await interaction.send(file=nextcord.File('%s.json' % server.id))
     print('Done')
 
 @bot.slash_command(description='Creates a 3d message count graph. X=Time, Y=count, Z=channels.')
